@@ -63,7 +63,6 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        // 1. Authenticate (Password check happens here or in Service)
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !password_verify($request->password, $user->password_hash)) {
@@ -74,10 +73,8 @@ class AuthController extends Controller
             return response()->json(['error' => 'Account is inactive'], 403);
         }
 
-        // 2. Generate Tokens
         $tokens = $this->authService->generateTokens($user);
 
-        // 3. Return Formatted Response
         return new AuthResponseResource(array_merge(['user' => $user], $tokens));
     }
 
@@ -122,16 +119,14 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request)
     {
-        // User exists (created by Admin), but needs password set.
         $user = User::where('email', $request->email)->firstOrFail();
 
         $user->update([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
-            'password_hash' => bcrypt($request->password), // or Hash::make()
+            'password_hash' => bcrypt($request->password),
         ]);
 
-        // Auto-login after setup
         $tokens = $this->authService->generateTokens($user);
 
         return new AuthResponseResource(array_merge(['user' => $user], $tokens));

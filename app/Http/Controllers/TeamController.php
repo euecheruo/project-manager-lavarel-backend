@@ -35,8 +35,7 @@ class TeamController extends Controller
      */
     public function index()
     {
-        $this->authorize('viewAny', Team::class);
-        // Returns list with member counts
+        Gate::authorize('viewAny', Team::class);
         return TeamResource::collection(Team::withCount('members')->get());
     }
 
@@ -65,7 +64,6 @@ class TeamController extends Controller
      */
     public function store(StoreTeamRequest $request)
     {
-        // Auth check is handled inside StoreTeamRequest class
         $team = Team::create(['name' => $request->name]);
         return new TeamResource($team);
     }
@@ -94,8 +92,7 @@ class TeamController extends Controller
      */
     public function show(Team $team)
     {
-        $this->authorize('view', $team);
-        // Eager load members and their roles for the roster view
+        Gate::authorize('view', $team);
         return new TeamResource($team->load('members.roles'));
     }
 
@@ -134,18 +131,14 @@ class TeamController extends Controller
      */
     public function addMember(Request $request, Team $team)
     {
-        // 1. Authorization: Check 'teams.manage_roster' permission via TeamPolicy
-        $this->authorize('manageRoster', $team);
+        Gate::authorize('manageRoster', $team);
 
-        // 2. Validation
         $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,user_id'],
         ]);
 
-        // 3. Action: Attach user to team (syncWithoutDetaching prevents duplicates)
         $team->members()->syncWithoutDetaching([$request->user_id]);
 
-        // Return the updated team data
         return response()->json([
             'message' => 'User assigned to team successfully',
             'team' => new TeamResource($team->load('members'))
@@ -185,10 +178,7 @@ class TeamController extends Controller
      */
     public function removeMember(Team $team, $userId)
     {
-        // 1. Authorization
-        $this->authorize('manageRoster', $team);
-
-        // 2. Action: Detach user
+        Gate::authorize('manageRoster', $team);
         $team->members()->detach($userId);
 
         return response()->json(['message' => 'User removed from team']);

@@ -70,7 +70,6 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        // 1. Executive Logic
         if ($user->hasRole('Executive')) {
             return response()->json([
                 'role' => 'Executive',
@@ -79,25 +78,21 @@ class DashboardController extends Controller
                     'total_employees' => User::count(),
                     'recent_reviews' => Review::where('created_at', '>=', now()->subDays(7))->count(),
                 ],
-                // Defer loading of projects without teams
                 'needs_attention' => Project::whereDoesntHave('teams')->get(['project_id', 'name']),
             ]);
         }
 
-        // 2. Manager Logic
         if ($user->hasRole('Manager')) {
             $myTeamIds = $user->teams->pluck('team_id');
 
             return response()->json([
                 'role' => 'Manager',
-                // We use loadCount to adhere to the TeamResource structure
                 'my_teams' => $user->teams->loadCount('members'),
                 'active_projects_count' => Project::whereHas('teams', fn($q) => $q->whereIn('teams.team_id', $myTeamIds))->count(),
                 'advisory_projects' => $user->advisedProjects()->get(['projects.project_id', 'name']),
             ]);
         }
 
-        // 3. Associate Logic (Default fallthrough)
         return response()->json([
             'role' => 'Associate',
             'assigned_projects_count' => Project::whereHas(

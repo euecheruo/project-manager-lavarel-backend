@@ -90,7 +90,6 @@ class ProjectController extends Controller
      */
     public function store(StoreProjectRequest $request)
     {
-        // Auth check is handled in StoreProjectRequest::authorize()
         $project = Project::create([
             'name' => $request->name,
             'description' => $request->description,
@@ -198,7 +197,7 @@ class ProjectController extends Controller
     {
         Gate::authorize('delete', $project);
 
-        $project->delete(); // Soft Delete
+        $project->delete();
 
         return response()->json(['message' => 'Project archived']);
     }

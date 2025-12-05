@@ -61,7 +61,6 @@ class AssignmentController extends Controller
      */
     public function assignTeams(AssignTeamsRequest $request)
     {
-        // Authorization handled in AssignTeamsRequest::authorize()
         $project = Project::findOrFail($request->project_id);
 
         $this->assignmentService->syncProjectTeams($project, $request->team_ids);
