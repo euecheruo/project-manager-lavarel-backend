@@ -108,6 +108,7 @@ packages/
 /storage/*.key
 /storage/pail
 /vendor
+phpunit.xml
 Homestead.json
 Homestead.yaml
 Thumbs.db
