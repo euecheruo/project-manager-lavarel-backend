@@ -1,59 +1,143 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+// workspace-root/README.md
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Project Manager API (Laravel 12 / PHP 8.5)
 
-## About Laravel
+## Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This application is a scalable, strictly typed backend API for a Project Management System. It allows an organization to manage employees, teams, and projects while facilitating a review system where employees can provide feedback on the projects they are working on.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The system implements a complex **Role-Based Access Control (RBAC)** architecture that handles both global roles (Executive, Manager) and contextual access (Internal Advisors, Team Assignments). It uses JWT (JSON Web Tokens) for secure, stateless authentication with token rotation.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Technology Stack
 
-## Learning Laravel
+* **Framework**: Laravel 12 
+* **Language**: PHP 8.5 
+* **Database**: PostgreSQL (uses native `SERIAL` and custom schemas) 
+* **Authentication**: Custom JWT implementation via `firebase/php-jwt` (bypassing Sanctum/Passport for specific payload control).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Goals
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1.  **Orchestration**: Manage the relationship between `Users`, `Teams`, and `Projects`.
+2.  **Feedback Loop**: Enable a review system where `Associates` and `Managers` can rate projects (1-5 stars) and provide written content.
+3.  **Security**: Enforce strict data visibility rules—only Executives can see who wrote a specific review, while others see anonymized data.
+4.  **Contextual Access**: Allow users (Managers/Associates) to become "Internal Advisors" on projects outside their team, granting temporary access.
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Setup & Commands
 
-### Premium Partners
+### Prerequisites
+* PHP 8.5+
+* PostgreSQL
+* Composer
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Running Tests
+This project includes a comprehensive test suite. The base `TestCase` is configured to automatically seed the database with Roles, Permissions, and an Admin user before every test to ensure a valid RBAC state.
 
-## Contributing
+```bash
+php artisan test
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+* **Usage**: Runs all Feature and Unit tests located in the `/tests` directory.
+* **What it checks**: Authentication flows, Role enforcement, Policy logic (e.g., ensuring an Associate cannot access Executive routes), and Data integrity.
 
-## Code of Conduct
+### Serving the Application
+To run the API locally for development:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan serve
+```
 
-## Security Vulnerabilities
+* **Usage**: Starts the built-in Laravel development server at `http://127.0.0.1:8000`.
+* **Note**: Ensure your `.env` file is configured with the correct database credentials before running.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Roles & Permissions Architecture
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The system uses a "Waterfall" policy logic combined with Global Roles.
+
+### 1. Executive 
+* **Scope**: Global System Administrator.
+* **Permissions**:
+    * **Users**: Create, View, Update, Delete (Soft Delete).
+    * **Projects**: View ALL projects, Create, Archive.
+    * **Assignments**: Can assign Teams to Projects and assign Internal Advisors.
+    * **Reviews**: Can see the **real names** of reviewers (bypassing anonymity). Can delete any review.
+
+### 2. Manager 
+* **Scope**: Team Level.
+* **Permissions**:
+    * **Projects**: Can view projects assigned to their Team(s).
+    * **Reviews**: Can view reviews for their team's projects. Can create reviews. Can update/delete their *own* reviews.
+    * **Advisory**: Can be assigned as an Internal Advisor to other projects.
+
+### 3. Associate 
+* **Scope**: Individual Contributor.
+* **Permissions**:
+    * **Projects**: Can view projects assigned to their Team(s).
+    * **Reviews**: Can view reviews. Can create reviews. Can update/delete their *own* reviews.
+
+### 4. Internal Advisor (Contextual Role)
+* **Definition**: A user (Manager or Associate) granted temporary access to a specific project they are not normally assigned to.
+* **Rules**:
+    * Bypasses the standard Team check in `ProjectPolicy`.
+    * Can view the specific project and leave reviews.
+
+---
+
+## API Endpoints
+
+All endpoints are prefixed with `/api`. Responses are strictly typed JSON.
+
+### Authentication (Public) 
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/login` | Exchange credentials for Access & Refresh Tokens. |
+| `POST` | `/register` | Complete account setup (set password) for invited users. |
+| `GET` | `/health` | API status check. |
+
+### Protected Routes (Requires Bearer Token) 
+
+#### Dashboard & Profile
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/dashboard` | Returns stats based on user Role (Exec/Mgr/Assoc). |
+| `GET` | `/profile` | Get current user details. |
+| `POST` | `/refresh-token` | Rotate the Refresh Token. |
+| `POST` | `/logout` | Revoke all tokens. |
+
+#### Projects & Reviews 
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/projects` | List projects (Filtered by Access Policy). |
+| `GET` | `/projects/{id}` | View project details. |
+| `GET` | `/projects/{id}/reviews` | List reviews (Names hidden unless Exec/Self). |
+| `POST` | `/projects/{id}/reviews` | Create a review (Requires Team/Advisor access). |
+| `GET` | `/my-reviews` | Personal audit log of user's reviews. |
+| `PUT` | `/reviews/{id}` | Edit own review. |
+| `DELETE` | `/reviews/{id}` | Delete own review (or Exec deletes any). |
+
+#### Teams 
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/teams` | List all teams. |
+| `GET` | `/teams/{id}` | View team roster. |
+
+### Executive Administration (Role Restricted)
+*Requires `role:Executive` middleware.* 
+
+#### User Management 
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/users` | List all employees. |
+| `POST` | `/users` | Create a new employee. |
+| `PUT` | `/users/{id}` | Update role or status. |
+| `DELETE` | `/users/{id}` | Deactivate (Soft Delete) user. |
+
+#### Assignments (Orchestration) 
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/assignments/project-teams` | Assign entire Teams to a Project. |
+| `POST` | `/assignments/advisors` | Assign an Internal Advisor to a Project. |
+| `DELETE` | `/assignments/advisors/{prj}/{uid}` | Remove an Advisor. |
