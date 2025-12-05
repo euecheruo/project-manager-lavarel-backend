@@ -14,35 +14,32 @@ class ProjectAccessTest extends TestCase
     public function test_executive_can_view_all_projects()
     {
         $exec = $this->createExecutive();
-        Project::factory()->count(3)->create(); // Create 3 unassigned projects
+        Project::factory()->count(3)->create();
 
         $this->authenticateAs($exec)
             ->getJson('/api/projects')
             ->assertStatus(200)
-            ->assertJsonCount(3, 'data'); // Should see all 3
+            ->assertJsonCount(3, 'data');
     }
 
     public function test_manager_cannot_view_unassigned_projects()
     {
         $manager = $this->createManager();
-        Project::factory()->create(); // Unassigned project
+        Project::factory()->create();
 
         $this->authenticateAs($manager)
             ->getJson('/api/projects')
             ->assertStatus(200)
-            ->assertJsonCount(0, 'data'); // Should see 0
+            ->assertJsonCount(0, 'data');
     }
 
     public function test_internal_advisor_can_view_project()
     {
-        // 1. Setup
         $manager = $this->createManager();
         $project = Project::factory()->create();
 
-        // 2. Assign as Advisor (Directly in DB for test setup)
         $project->advisors()->attach($manager->user_id);
 
-        // 3. Test Access
         $this->authenticateAs($manager)
             ->getJson('/api/projects')
             ->assertStatus(200)

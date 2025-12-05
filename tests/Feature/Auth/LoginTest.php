@@ -13,27 +13,23 @@ class LoginTest extends TestCase
 
     public function test_user_can_login_with_valid_credentials()
     {
-        // 1. Create User
         $user = User::factory()->create([
             'email' => 'test@example.com',
             'password_hash' => Hash::make('password123'),
         ]);
 
-        // 2. Attempt Login
         $response = $this->postJson('/api/login', [
             'email' => 'test@example.com',
             'password' => 'password123',
         ]);
 
-        // 3. Assert Response
-        // FIX: Removed 'data' wrapper from assertion to match AppServiceProvider logic
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'user' => [
                     'id',
                     'email',
                     'full_name',
-                    'roles' // Included in UserResource
+                    'roles'
                 ],
                 'authorization' => [
                     'token',
