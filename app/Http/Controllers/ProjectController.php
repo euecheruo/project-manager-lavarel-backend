@@ -9,10 +9,35 @@ use App\Http\Resources\ProjectResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @OA\Tag(
+ * name="Projects",
+ * description="Core project management endpoints."
+ * )
+ */
 class ProjectController extends Controller
 {
     /**
-     * List projects (Filtered by Access).
+     * @OA\Get(
+     * path="/api/projects",
+     * operationId="getProjects",
+     * tags={"Projects"},
+     * summary="List all projects",
+     * description="Executives see all projects. Managers and Associates see only projects they are assigned to (via Team or Advisory).",
+     * security={{"bearerAuth":{}}},
+     * @OA\Parameter(
+     * name="page",
+     * in="query",
+     * description="Page number",
+     * required=false,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="List of projects",
+     * @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/ProjectResource"))
+     * )
+     * )
      */
     public function index(Request $request)
     {
@@ -39,11 +64,33 @@ class ProjectController extends Controller
     }
 
     /**
-     * Create Project (Exec Only).
-     * Auth check is handled in StoreProjectRequest::authorize()
+     * @OA\Post(
+     * path="/api/projects",
+     * operationId="createProject",
+     * tags={"Projects"},
+     * summary="Create a new project",
+     * description="Creates a new project record. Restricted to Executives.",
+     * security={{"bearerAuth":{}}},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"name"},
+     * @OA\Property(property="name", type="string", example="Q4 Marketing Refresh"),
+     * @OA\Property(property="description", type="string", example="Overhaul of the main landing pages."),
+     * @OA\Property(property="status", type="string", enum={"active", "hold", "completed"}, default="active")
+     * )
+     * ),
+     * @OA\Response(
+     * response=201,
+     * description="Project created successfully",
+     * @OA\JsonContent(ref="#/components/schemas/ProjectResource")
+     * ),
+     * @OA\Response(response=403, description="Forbidden. Executives only.")
+     * )
      */
     public function store(StoreProjectRequest $request)
     {
+        // Auth check is handled in StoreProjectRequest::authorize()
         $project = Project::create([
             'name' => $request->name,
             'description' => $request->description,
@@ -55,7 +102,27 @@ class ProjectController extends Controller
     }
 
     /**
-     * View Single Project.
+     * @OA\Get(
+     * path="/api/projects/{project}",
+     * operationId="getProjectById",
+     * tags={"Projects"},
+     * summary="Get project details",
+     * description="View details, including assigned teams and advisors. Users must have access rights.",
+     * security={{"bearerAuth":{}}},
+     * @OA\Parameter(
+     * name="project",
+     * in="path",
+     * description="Project ID",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Project details",
+     * @OA\JsonContent(ref="#/components/schemas/ProjectResource")
+     * ),
+     * @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function show(Project $project)
     {
@@ -67,7 +134,33 @@ class ProjectController extends Controller
     }
 
     /**
-     * Update Project (Exec Only).
+     * @OA\Put(
+     * path="/api/projects/{project}",
+     * operationId="updateProject",
+     * tags={"Projects"},
+     * summary="Update project details",
+     * description="Update metadata or status. Executives only.",
+     * security={{"bearerAuth":{}}},
+     * @OA\Parameter(
+     * name="project",
+     * in="path",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * @OA\Property(property="name", type="string"),
+     * @OA\Property(property="description", type="string"),
+     * @OA\Property(property="status", type="string", enum={"active", "hold", "completed", "archived"})
+     * )
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Project updated",
+     * @OA\JsonContent(ref="#/components/schemas/ProjectResource")
+     * )
+     * )
      */
     public function update(UpdateProjectRequest $request, Project $project)
     {
@@ -79,7 +172,27 @@ class ProjectController extends Controller
     }
 
     /**
-     * Archive/Delete Project (Exec Only).
+     * @OA\Delete(
+     * path="/api/projects/{project}",
+     * operationId="deleteProject",
+     * tags={"Projects"},
+     * summary="Archive/Delete project",
+     * description="Soft deletes the project. Executives only.",
+     * security={{"bearerAuth":{}}},
+     * @OA\Parameter(
+     * name="project",
+     * in="path",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Project archived",
+     * @OA\JsonContent(
+     * @OA\Property(property="message", type="string", example="Project archived")
+     * )
+     * )
+     * )
      */
     public function destroy(Project $project)
     {

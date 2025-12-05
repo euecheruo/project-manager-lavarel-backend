@@ -1,0 +1,1846 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Project Manager API",
+        "description": "API Documentation for the Project Management System. <br> **Base URL**: /api",
+        "contact": {
+            "email": "admin@company.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://my-default-host.com",
+            "description": "API Server"
+        }
+    ],
+    "paths": {
+        "/api/users": {
+            "get": {
+                "tags": [
+                    "User Management"
+                ],
+                "summary": "List all employees",
+                "description": "Retrieve a paginated list of all users and their global roles. Restricted to Executives.",
+                "operationId": "getUsers",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/UserResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. Requires Executive role."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "User Management"
+                ],
+                "summary": "Onboard a new employee",
+                "description": "Creates a user record and assigns a global role. Triggers an invite email (logic deferred).",
+                "operationId": "createUser",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "first_name",
+                                    "last_name",
+                                    "email",
+                                    "role_name"
+                                ],
+                                "properties": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "Alice"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "example": "Smith"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "alice@company.com"
+                                    },
+                                    "role_name": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Executive",
+                                            "Manager",
+                                            "Associate"
+                                        ],
+                                        "example": "Associate"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error (Email exists or Invalid Role)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/users/{user}": {
+            "put": {
+                "tags": [
+                    "User Management"
+                ],
+                "summary": "Update employee details",
+                "description": "Modify details, promote/demote roles, or change active status.",
+                "operationId": "updateUser",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "first_name": {
+                                        "type": "string"
+                                    },
+                                    "last_name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "role_name": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Executive",
+                                            "Manager",
+                                            "Associate"
+                                        ]
+                                    },
+                                    "is_active": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResource"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "User Management"
+                ],
+                "summary": "Deactivate employee",
+                "description": "Soft deletes the user and revokes all refresh tokens immediately.",
+                "operationId": "deleteUser",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deactivated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User deactivated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/assignments/project-teams": {
+            "post": {
+                "tags": [
+                    "Assignments"
+                ],
+                "summary": "Assign Teams to a Project",
+                "description": "Replaces the list of teams assigned to a project. Requires Executive role.",
+                "operationId": "assignTeamsToProject",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "project_id",
+                                    "team_ids"
+                                ],
+                                "properties": {
+                                    "project_id": {
+                                        "description": "The ID of the project to update",
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "team_ids": {
+                                        "description": "Array of Team IDs to assign. Existing assignments not in this list will be removed.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 2
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Assignments updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Teams assigned successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. Only Executives can assign teams."
+                    },
+                    "422": {
+                        "description": "Validation Error (e.g. Invalid Project ID or Team ID)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/assignments/advisors": {
+            "post": {
+                "tags": [
+                    "Assignments"
+                ],
+                "summary": "Assign Internal Advisor",
+                "description": "Grants a user specific 'Contextual Access' to a project, bypassing team restrictions.",
+                "operationId": "assignAdvisor",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "project_id",
+                                    "user_id"
+                                ],
+                                "properties": {
+                                    "project_id": {
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "user_id": {
+                                        "description": "The Manager/Associate to add as an advisor",
+                                        "type": "integer",
+                                        "example": 102
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Advisor assigned successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Advisor assigned successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Business Rule Exception (e.g. User is inactive)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/assignments/advisors/{project}/{userId}": {
+            "delete": {
+                "tags": [
+                    "Assignments"
+                ],
+                "summary": "Remove Internal Advisor",
+                "description": "Revokes the contextual access for a specific user on a specific project.",
+                "operationId": "removeAdvisor",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "description": "Project ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "User ID of the advisor to remove",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Advisor removed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Advisor removed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Login and retrieve JWT",
+                "description": "Exchanges email and password for an access token (1 hr) and refresh token (7 days).",
+                "operationId": "login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "admin@company.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Login",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "user": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        },
+                                        "authorization": {
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eX..."
+                                                },
+                                                "refresh_token": {
+                                                    "type": "string",
+                                                    "example": "def502..."
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "Bearer"
+                                                },
+                                                "expires_in": {
+                                                    "type": "integer",
+                                                    "example": 3600
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid Credentials"
+                    },
+                    "403": {
+                        "description": "Account is inactive"
+                    }
+                }
+            }
+        },
+        "/api/register": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Complete User Setup",
+                "description": "Used by employees to set their password after receiving an invite email.",
+                "operationId": "register",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "first_name",
+                                    "last_name",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "new.hire@company.com"
+                                    },
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 8,
+                                        "example": "Secret123!"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "Secret123!"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Account setup successful & Auto-Logged In",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "user": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        },
+                                        "authorization": {
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string"
+                                                },
+                                                "refresh_token": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "example": "Bearer"
+                                                },
+                                                "expires_in": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error (e.g. Passwords do not match or User not found)"
+                    }
+                }
+            }
+        },
+        "/api/refresh-token": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Rotate Refresh Token",
+                "description": "Exchange a valid refresh token for a new pair of access/refresh tokens.",
+                "operationId": "refreshToken",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "refresh_token"
+                                ],
+                                "properties": {
+                                    "refresh_token": {
+                                        "type": "string",
+                                        "example": "def5020085..."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "New Tokens Issued",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "refresh_token": {
+                                            "type": "string"
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "Bearer"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 3600
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired token"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout User",
+                "description": "Revokes all refresh tokens for the current user (Logout from all devices).",
+                "operationId": "logout",
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged out successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/dashboard": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get Dashboard Metrics",
+                "description": "Returns a different set of statistics depending on whether the user is an Executive, Manager, or Associate.",
+                "operationId": "getDashboardStats",
+                "responses": {
+                    "200": {
+                        "description": "Role-specific dashboard data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "title": "Executive Dashboard",
+                                            "properties": {
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "Executive"
+                                                },
+                                                "stats": {
+                                                    "properties": {
+                                                        "active_projects": {
+                                                            "type": "integer",
+                                                            "example": 12
+                                                        },
+                                                        "total_employees": {
+                                                            "type": "integer",
+                                                            "example": 45
+                                                        },
+                                                        "recent_reviews": {
+                                                            "type": "integer",
+                                                            "example": 8
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "needs_attention": {
+                                                    "description": "Projects with no teams assigned",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "project_id": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Q3 Marketing Campaign"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "title": "Manager Dashboard",
+                                            "properties": {
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "Manager"
+                                                },
+                                                "my_teams": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/TeamResource"
+                                                    }
+                                                },
+                                                "active_projects_count": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "advisory_projects": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "project_id": {
+                                                                "type": "integer",
+                                                                "example": 7
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Legacy System Migration"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "title": "Associate Dashboard",
+                                            "properties": {
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "Associate"
+                                                },
+                                                "assigned_projects_count": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "my_reviews_count": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/projects": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "List all projects",
+                "description": "Executives see all projects. Managers and Associates see only projects they are assigned to (via Team or Advisory).",
+                "operationId": "getProjects",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of projects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProjectResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create a new project",
+                "description": "Creates a new project record. Restricted to Executives.",
+                "operationId": "createProject",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Q4 Marketing Refresh"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Overhaul of the main landing pages."
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "default": "active",
+                                        "enum": [
+                                            "active",
+                                            "hold",
+                                            "completed"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Project created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. Executives only."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/projects/{project}": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get project details",
+                "description": "View details, including assigned teams and advisors. Users must have access rights.",
+                "operationId": "getProjectById",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "description": "Project ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResource"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update project details",
+                "description": "Update metadata or status. Executives only.",
+                "operationId": "updateProject",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "hold",
+                                            "completed",
+                                            "archived"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResource"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Archive/Delete project",
+                "description": "Soft deletes the project. Executives only.",
+                "operationId": "deleteProject",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project archived",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Project archived"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/projects/{project}/reviews": {
+            "get": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "List reviews for a project",
+                "description": "Retrieve all reviews. Reviewer identity is masked for Managers/Associates.",
+                "operationId": "getProjectReviews",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "description": "Project ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of reviews",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ReviewResource"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User not assigned to project."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Submit a review",
+                "description": "Team members or Advisors can submit feedback.",
+                "operationId": "createReview",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "description": "Project ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "rating",
+                                    "content"
+                                ],
+                                "properties": {
+                                    "rating": {
+                                        "description": "1 to 5 stars",
+                                        "type": "integer",
+                                        "maximum": 5,
+                                        "minimum": 1,
+                                        "example": 5
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "minLength": 10,
+                                        "example": "Great execution on the frontend deliverables."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Review created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReviewResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error (e.g. Rating out of range)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/my-reviews": {
+            "get": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Get my review history",
+                "description": "Personal audit log of all reviews written by the authenticated user.",
+                "operationId": "getMyReviews",
+                "responses": {
+                    "200": {
+                        "description": "List of personal reviews",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ReviewResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/reviews/{review}": {
+            "put": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Update a review",
+                "description": "Authors can edit their own reviews.",
+                "operationId": "updateReview",
+                "parameters": [
+                    {
+                        "name": "review",
+                        "in": "path",
+                        "description": "Review ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "rating": {
+                                        "type": "integer",
+                                        "maximum": 5,
+                                        "minimum": 1
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "minLength": 10
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Review updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReviewResource"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. Can only edit own reviews."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Delete a review",
+                "description": "Authors can delete their own reviews. Executives can delete any review.",
+                "operationId": "deleteReview",
+                "parameters": [
+                    {
+                        "name": "review",
+                        "in": "path",
+                        "description": "Review ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Review deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Review deleted"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/teams": {
+            "get": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "List all teams",
+                "description": "Retrieve a directory of all teams with member counts.",
+                "operationId": "getTeams",
+                "responses": {
+                    "200": {
+                        "description": "List of teams",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TeamResource"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Create a new team",
+                "description": "Executive only.",
+                "operationId": "createTeam",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "description": "Unique team name",
+                                        "type": "string",
+                                        "example": "Frontend Alpha"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Team created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamResource"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error (Name taken)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/teams/{team}": {
+            "get": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Get team details",
+                "description": "View team roster. Useful for Associates to find their manager.",
+                "operationId": "getTeamById",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "description": "Team ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Team details with roster",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamResource"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/teams/{team}/members": {
+            "post": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Add user to team",
+                "description": "Assigns a user to the team roster. Executive only.",
+                "operationId": "addTeamMember",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "description": "Team ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "description": "User ID to add",
+                                        "type": "integer",
+                                        "example": 101
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User added successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User assigned to team successfully"
+                                        },
+                                        "team": {
+                                            "$ref": "#/components/schemas/TeamResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. Executives only."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/teams/{team}/members/{userId}": {
+            "delete": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Remove user from team",
+                "description": "Removes a user from the team roster. Executive only.",
+                "operationId": "removeTeamMember",
+                "parameters": [
+                    {
+                        "name": "team",
+                        "in": "path",
+                        "description": "Team ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "User ID to remove",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User removed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User removed from team"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ProjectResource": {
+                "title": "Project Resource",
+                "description": "Details of a project including metrics, assigned teams, and advisors.",
+                "properties": {
+                    "id": {
+                        "description": "Unique Project ID",
+                        "type": "integer",
+                        "example": 101
+                    },
+                    "name": {
+                        "description": "Project Name",
+                        "type": "string",
+                        "example": "Q3 Marketing Campaign"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Revamping the core legacy system.",
+                        "nullable": true
+                    },
+                    "status": {
+                        "description": "Current status of the project",
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "completed",
+                            "archived",
+                            "hold"
+                        ],
+                        "example": "active"
+                    },
+                    "metrics": {
+                        "description": "Aggregated review statistics",
+                        "properties": {
+                            "average_rating": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 4.5
+                            },
+                            "review_count": {
+                                "type": "integer",
+                                "example": 12
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "created_by": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/UserResource"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "The Executive who created the project (nullable if user deleted)"
+                    },
+                    "teams": {
+                        "description": "List of teams assigned to this project",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TeamResource"
+                        }
+                    },
+                    "advisors": {
+                        "description": "List of internal advisors assigned to this project",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/UserResource"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-10-01T12:00:00Z"
+                    },
+                    "deleted_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-12-31T23:59:59Z",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "ReviewResource": {
+                "title": "Review Resource",
+                "description": "Review details including rating, content, and reviewer information (masked if unauthorized).",
+                "properties": {
+                    "id": {
+                        "description": "Unique Review ID",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "rating": {
+                        "description": "Rating from 1-5",
+                        "type": "integer",
+                        "maximum": 5,
+                        "minimum": 1,
+                        "example": 5
+                    },
+                    "content": {
+                        "description": "Review content",
+                        "type": "string",
+                        "example": "Great work on the backend modules."
+                    },
+                    "reviewer": {
+                        "description": "Reviewer details. Name is masked for non-executives unless it's their own review.",
+                        "properties": {
+                            "id": {
+                                "description": "User ID (null if anonymous)",
+                                "type": "integer",
+                                "example": 10,
+                                "nullable": true
+                            },
+                            "name": {
+                                "description": "Full Name (or 'Anonymous Team Member')",
+                                "type": "string",
+                                "example": "John Doe"
+                            },
+                            "role": {
+                                "description": "Role name (or 'Hidden')",
+                                "type": "string",
+                                "example": "Manager"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 101
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "example": "Q3 Marketing Campaign",
+                        "nullable": true
+                    },
+                    "is_mine": {
+                        "description": "True if the current user wrote this review",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-10-01T12:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-10-01T12:00:00Z"
+                    }
+                },
+                "type": "object"
+            },
+            "TeamResource": {
+                "title": "Team Resource",
+                "description": "Represents a team within the organization.",
+                "properties": {
+                    "id": {
+                        "description": "Unique identifier for the team",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "name": {
+                        "description": "Name of the team",
+                        "type": "string",
+                        "example": "Frontend Alpha"
+                    },
+                    "member_count": {
+                        "description": "Total number of members in the team (Conditional)",
+                        "type": "integer",
+                        "example": 5,
+                        "nullable": true
+                    },
+                    "members": {
+                        "description": "List of team members (Conditional: only when roster is loaded)",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/UserResource"
+                        },
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Timestamp when the team was created",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-01T12:00:00Z"
+                    }
+                },
+                "type": "object"
+            },
+            "UserResource": {
+                "title": "User Resource",
+                "description": "Employee details including global roles and context-specific pivot data.",
+                "properties": {
+                    "id": {
+                        "description": "Unique User ID",
+                        "type": "integer",
+                        "example": 101
+                    },
+                    "first_name": {
+                        "type": "string",
+                        "example": "Alice"
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "example": "Smith"
+                    },
+                    "full_name": {
+                        "description": "Computed full name attribute",
+                        "type": "string",
+                        "readOnly": true,
+                        "example": "Alice Smith"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "alice@company.com"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "roles": {
+                        "description": "List of assigned global roles (Executive, Manager, Associate)",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "example": "Associate"
+                        }
+                    },
+                    "joined_team_at": {
+                        "description": "Timestamp when user joined the team. Only present in Team Roster views.",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "assigned_advisor_at": {
+                        "description": "Timestamp when user was assigned as an advisor. Only present in Project Advisor contexts.",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Enter your JWT token in the format: Bearer <token>",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "User Management",
+            "description": "Executive-only endpoints for managing employees and roles."
+        },
+        {
+            "name": "Assignments",
+            "description": "Executive-only endpoints for linking Teams and Advisors to Projects."
+        },
+        {
+            "name": "Authentication",
+            "description": "Endpoints for user login, registration, and token management."
+        },
+        {
+            "name": "Dashboard",
+            "description": "Central hub stats and metrics based on user role."
+        },
+        {
+            "name": "Projects",
+            "description": "Core project management endpoints."
+        },
+        {
+            "name": "Reviews",
+            "description": "Feedback management. Note: Reviewer names are hidden from non-executives unless the user is viewing their own review."
+        },
+        {
+            "name": "Teams",
+            "description": "Team management and roster assignments."
+        }
+    ]
+}
